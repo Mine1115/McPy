@@ -15,16 +15,15 @@ import classes.Server as Server
 from .IncomingPacketAction import ServerAction, ServerActionType
 from .PacketType import BasicNetwork, PacketType, PacketTypeInput
 from .versions.v578 import v1_15_2, v1_15_2_Input
+from classes.utils.Config import ConfigParser
 
-
-QUEUE_SIZE = 100000
-
+config = ConfigParser.load_config(1)
 
 class PlayerNetwork(server.ServerProtocol):
 
     def handle_loop(self):
         """
-        This method will check if there is a packet to send to the player and if there is, it sends the packet\n
+        This method will check if there is a packet to send to the player and if there is, it sends the packet
         This method is called 20 times per seconds
         """
         while True:
@@ -55,7 +54,7 @@ class PlayerNetwork(server.ServerProtocol):
         self._protocol_input = self.factory._protocol_input[str(self.protocol_version)]
         self.version = Version.get_version(self.protocol_version)
 
-        self.TASK_QUEUE = multiprocessing.Queue(QUEUE_SIZE)
+        self.TASK_QUEUE = multiprocessing.Queue()
         self._handle_loop = self.ticker.add_loop(1, self.handle_loop)
         # Keep alive loop
         self.ticker.add_loop(20, self._update_keep_alive)
@@ -89,13 +88,13 @@ class PlayerNetwork(server.ServerProtocol):
         # TODO Move this logic in another place
         p_text = buff.unpack_string()
         message = "<{0}> {1}".format(self.display_name, p_text)
-        print(message)
+        logging.info(message)
         NetworkController.send_packet(packet_type=PacketType.CHAT_MESSAGE,
                                       message=message)
 
     def add_packet(self, packet_type: PacketType, data):
         """
-        Add a packet into the QUEUE\n
+        Add a packet into the QUEUE
         The packet will be sent to the player on the next tick
         """
         self.TASK_QUEUE.put_nowait({
@@ -149,7 +148,7 @@ class PlayerNetwork(server.ServerProtocol):
 
 class ServerFactory(server.ServerFactory):
 
-    def __init__(self, host='localhost', port=25565):
+    def __init__(self, host=config['ip'], port=config['port']):
         super(ServerFactory, self).__init__()
         self._host = host
         self._port = port
@@ -168,13 +167,16 @@ class ServerFactory(server.ServerFactory):
 
     def start_server(self):
         """
-        Start the server\n
+        Start the server
         THIS METHOD BLOCKS, IT SHOULD BE CALLED IN ASYNC OR IN ANOTHER THREAD
         """
         reactor.run(installSignalHandlers=False)
 
     def set_motd(self, motd):
         self.motd = motd
+
+    def set_max_players(self, max_players):
+        self.max_players = max_players
 
     def get_player(self, entity_id) -> PlayerNetwork:
         if str(entity_id) in self._players:
@@ -241,14 +243,14 @@ class ServerFactory(server.ServerFactory):
 
 class NetworkController:
     # Outgoing data (Server => Clients)
-    OUT_QUEUE = multiprocessing.Queue(QUEUE_SIZE)
+    OUT_QUEUE = multiprocessing.Queue()
     # Incoming data (Clients => Server)
-    IN_QUEUE = multiprocessing.Queue(QUEUE_SIZE)
+    IN_QUEUE = multiprocessing.Queue()
     # The Network Process
     networking_process: multiprocessing.Process
 
     @staticmethod
-    def start_process(server: Server, host='localhost', port=25565):
+    def start_process(server: Server, host=config['ip'], port=config['port']):
         """
         Start the Network process
         """
@@ -274,6 +276,8 @@ class NetworkController:
         NetworkController.OUT_QUEUE = OUT_QUEUE
         server_factory = ServerFactory(host, port)
         server_factory.pre_start_server()
+        server_factory.set_motd(config['motd'])
+        server_factory.set_max_players(config['max_players'])
 
         # Let's start another thread that will start the server :D
         server_thread = threading.Thread(target=server_factory.start_server, name='NETWORK_THREAD')
