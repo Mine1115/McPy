@@ -55,6 +55,26 @@ class v1_15_2(BasicNetwork):
         return [
             buff_type.pack_chat(message) + buff_type.pack('B', 0)
         ]
+    
+    @staticmethod
+    def update_view_position(buff_type, chunk_x, chunk_z):
+        return [
+            buff_type.pack_varint(chunk_x),
+            buff_type.pack_varint(chunk_z)
+        ]
+
+    @staticmethod
+    def chunk_data(buff_type, chunk_x, chunk_z, full_chunk, primary_bit_mask, heightmaps, biomes, size, data, block_entity_count, block_entities):
+        return [
+            buff_type.pack('ii?', chunk_x, chunk_z, full_chunk),
+            buff_type.pack_varint(primary_bit_mask),
+            buff_type.pack_string(heightmaps),
+            buff_type.pack_string(biomes) if full_chunk else b'',
+            buff_type.pack_varint(size),
+            buff_type.pack('b', data),
+            buff_type.pack_varint(block_entity_count),
+            buff_type.pack_string(block_entities)
+        ]
 
 
 class v1_15_2_Input(BasicNetworkInput):
