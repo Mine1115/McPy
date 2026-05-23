@@ -22,6 +22,7 @@ class Player(Entity):
         self.chat_color = True
         self.skin_parts = 127
         self.main_hand = 1
+        self.loaded_chunks = []
 
     def set_client_settings(self, locale, view_distance, chat_mode, chat_color, skin_parts, main_hand):
         self.locale = locale
@@ -71,7 +72,7 @@ class PlayerManager():
     def send_join_packets(self, player: Player):
         # 'join_game'
         NetworkController.send_packet_player(player.entity_id, PacketType.JOIN_GAME, {
-            'gamemode': 3,
+            'gamemode': 1,
             'dimension': 0,
             'hashed_seed': 0,
             'max_player': 100,

@@ -86,6 +86,29 @@ class Server:
         # Update time
         NetworkController.send_packet(packet_type=PacketType.TIME_UPDATE, game_time=self.total_time, day_time=self.day_time)
 
+        # check if player needs to get more chunk data
+        for player in self.player_manager.players.values():
+            player_chunk_y = player.entity_location.y // 16
+            player_chunk_x = player.entity_location.x // 16
+            if (player_chunk_x, player_chunk_y) not in player.loaded_chunks:
+                player.loaded_chunks.append((player_chunk_x, player_chunk_y))
+                heightmaps = {"MOTION_BLOCKING": []}
+                for i in range(256):
+                    heightmaps['MOTION_BLOCKING'].append(0b000000000)
+                NetworkController.send_packet_player(player.entity_id, PacketType.CHUNK_DATA, {
+                    'chunk_x': player_chunk_x,
+                    'chunk_z': player_chunk_y,
+                    'full_chunk': True,
+                    'primary_bit_mask': 0b1111111111111111,
+                    'heightmaps': heightmaps, # 256 entries with 9 bits per
+                    'biomes': [],
+                    'size': 0,
+                    'data': b'',
+                    'block_entity_count': 0,
+                    'block_entities': []
+                })
+
+
     def run_test(self):
         import pytest
         pytest.main(['-x', 'test'])

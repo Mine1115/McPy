@@ -23,7 +23,7 @@ class DataParser():
         You can call this method multiple times, classes already loaded will not be reloaded
     """
 
-    def __init__(self, directory='minecraft-data/', versions=['all']):
+    def __init__(self, directory='minecraft-data/', versions=['1.15.2']):
         """
         Register a class in the parser to load and import data from a json file.
 
@@ -47,7 +47,7 @@ class DataParser():
             # Import all versions
             self.versions = [v for v in Version]
         else:
-            self.versions = list(filter(None.__ne__, [Version.get_version_data_file(v) for v in versions]))
+            self.versions = list(filter(None, [Version.get_version_data_file(v) for v in ["1.15.2"]]))
 
     def parse(self):
         with open(self.data_directory + 'dataPaths.json') as json_file:
